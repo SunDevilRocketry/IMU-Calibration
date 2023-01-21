@@ -1,0 +1,8 @@
+Headers of Data Files
+time (s), IMUX (m/s^2), IMUY (m/s^2), IMUZ (m/s^2), GYROX (deg/s), GYROY (deg/s), GYROZ (deg/s), MAGX (raw), MAGY (raw), MAGZ (raw), Baro Pressure (kPa), Baro Temp (Celsius)
+
+Data Collection Parameters
+T_init = 50
+N = 11/12
+
+For files that are marked, Garbage data starts on line 2992
