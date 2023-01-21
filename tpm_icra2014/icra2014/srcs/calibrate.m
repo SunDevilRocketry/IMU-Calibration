@@ -3,8 +3,8 @@ close all;
 clc;
 
 % Importing data 
-IMU0x2Dalpha = importdata("C:\Users\stanl\OneDrive - Arizona State University\College\Rocketry\IMU calibration\tpm_icra2014\icra2014\srcs\IMU0x2Dalpha.mat"); 
-IMU0x2Domega = importdata("C:\Users\stanl\OneDrive - Arizona State University\College\Rocketry\IMU calibration\tpm_icra2014\icra2014\srcs\IMU0x2Domega.mat");
+IMU0x2Dalpha = importdata("IMU0x2Dalpha.mat"); 
+IMU0x2Domega = importdata("IMU0x2Domega.mat");
 
 time = IMU0x2Domega(:,1)';
 
