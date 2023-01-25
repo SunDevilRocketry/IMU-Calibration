@@ -91,9 +91,9 @@ var_3D = (var(biasfree_alpha_x[0:T_init]))**2 + (var(biasfree_alpha_y[0:T_init])
 tw = 101
 half_tw = tw//2
     
-normal_x = np.zeros(total_sample)
-normal_y = np.zeros(total_sample)
-normal_z = np.zeros(total_sample)
+normal_x = np.zeros([1,total_sample])
+normal_y = np.zeros([1,total_sample])
+normal_z = np.zeros([1,total_sample])
 print('a')
 for i in range (half_tw+1,total_sample-(half_tw+1)):
     normal_x[i] = var(biasfree_alpha_x[i-half_tw:i+half_tw])
@@ -103,7 +103,7 @@ print('b')
 s_square = (normal_x**2)+(normal_y**2)+(normal_z**2)
 print(s_square[1000])
 
-s_filter = np.zeros(total_sample)
+s_filter = np.zeros([1,total_sample])
 print('finished')
 
 ##plt.plot(variance_magnitude)
