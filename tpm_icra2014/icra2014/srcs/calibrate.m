@@ -169,7 +169,7 @@ for times_the_var = 1:max_times_the_var
     ObjectiveFunction = @(theta_pr) accCostFunctLSQNONLIN(theta_pr, selectedAccData);
     options = optimset('MaxFunEvals', 150000, 'MaxIter', 6000, 'TolFun', 10^(-10));
     
-    [theta_pr rsnorm] = lsqnonlin(ObjectiveFunction, theta_pr, [], [], options);
+    [theta_pr rsnorm resid] = lsqnonlin(ObjectiveFunction, theta_pr, [], [], options);
     
     res_norm_vector(:,times_the_var) = [theta_pr';rsnorm;times_the_var*var_3D];
     
