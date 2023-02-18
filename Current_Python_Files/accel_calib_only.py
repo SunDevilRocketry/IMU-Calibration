@@ -3,19 +3,64 @@
 ## Py            MAT
 ## Range(A,B) == A:(B-1)
 
-import time
-st = time.process_time()
-
 import numpy as np
+import math
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pandas as pd
 import statistics as stat
 import scipy as scp
 import sympy as sym
-from calibration_functions import *
 
 print("Program to Calibrate IMU Gyroscope and Accelerometer")
+
+def accCostFunctionLSQNONLIN(E,a_hat):
+    misalignmentMatrix = np.array([[1,-E[0],E[1]],[0,1,-E[2]],[0,0,1]])
+    scalingMtrix = np.diag([E[3],E[4],E[5]])
+
+    a_bar = np.matmul(np.matmul(misalignmentMatrix,scalingMtrix),a_hat) - np.matmul(np.diag([E[6],E[7],E[8]]),np.ones([3,a_hat.shape[1]]))
+
+    # Magnitude taken from tables
+    magnitude = 9.81744
+
+    residuals = np.zeros([a_bar.shape[1]])
+
+    for i in range(a_bar.shape[1]):
+        residuals[i] = magnitude**2 - (a_bar[0,i]**2 + a_bar[1,i]**2 + a_bar[2,i]**2)
+
+    return residuals
+
+def quaternion(theta,w):
+
+    q = np.array([math.cos(theta/2),math.sin(theta/2)*w[0],math.sin(theta/2)*w[1],math.sin(theta/2)*w[2]])
+
+    r_11 = q[0]**2 + q[1]**2 - q[2]**2 - q[3]**2
+    r_12 = 2*(q[1]*q[2] - q[0]*q[3])
+    r_13 = 2*(q[1]*q[3] + q[0]*q[2])
+    r_21 = 2*(q[1]*q[2] + q[0]*q[3])
+    r_22 = q[0]**2 - q[1]**2 + q[2]**2 - q[3]**2
+    r_23 = 2*(q[2]*q[3] - q[0]*q[1])
+    r_31 = 2*(q[1]*q[3] - q[0]*q[2])
+    r_32 = 2*(q[2]*q[3] + q[0]*q[1])
+    r_33 = q[0]**2 - q[1]**2 - q[2]**2 + q[3]**2
+
+    return np.array([[r_11,r_12,r_13],[r_21,r_22,r_23],[r_31,r_32,r_33]])
+
+def obtainComparableMatrix(acc_scale_matrix, acc_misal_matrix):
+    # acc misal parameter taken from datasheet
+    alpha_xz_6 = 0.01
+    alpha_xy_6 = -0.02
+    alpha_yx_6 = 0.01
+
+    R_xz = quaternion(-alpha_xz_6,np.array([0,0,1]))
+    R_xy = quaternion(-alpha_xy_6,np.array([0,1,0]))
+    R_yx = quaternion(-alpha_yx_6,np.array([1,0,0]))
+
+    comp_a_scale_matrix = np.linalg.inv(acc_scale_matrix)
+    comp_a_misal_matrix = np.linalg.inv(np.matmul(np.matmul(np.matmul(R_xz,R_xy),R_yx),acc_misal_matrix))
+
+    return [comp_a_scale_matrix,comp_a_misal_matrix]
+
 
 ## Importing Data
 print('Importing Data')
@@ -219,114 +264,9 @@ for i in range (half_tw, total_sample - (half_tw)):
 ##plt.legend()
 ##plt.show()
 
-## GYROSCOPE BIAS REMOVAL
-# QS filter for the first static region individuation
-init_long_qs_interval_start = 0
-init_long_qs_interval_end = 0
-flag_is_first_long_static_interval = 1
+[comp_a_scale,comp_a_misal] = obtainComparableMatrix(estimated_scalingMatrix,estimated_misalignmentMatrix)
 
-for i in range (total_sample):
-    if s_filter[i] == 1 and flag_is_first_long_static_interval == 1:
-        init_long_qs_interval_start = i+1
-        flag_is_first_long_static_interval = 2
-    elif s_filter[i] == 0 and flag_is_first_long_static_interval == 2:
-        init_long_qs_interval_end = i+1
-        break
-
-estimate_bias_x = np.mean(biasfree_omega_x[init_long_qs_interval_start:init_long_qs_interval_end])
-estimate_bias_y = np.mean(biasfree_omega_y[init_long_qs_interval_start:init_long_qs_interval_end])
-estimate_bias_z = np.mean(biasfree_omega_z[init_long_qs_interval_start:init_long_qs_interval_end])
-
-omega_x = biasfree_omega_x - estimate_bias_x
-omega_y = biasfree_omega_y - estimate_bias_y
-omega_z = biasfree_omega_z - estimate_bias_z
-
-## GYROSCOPE MINIMIZATION
-estimated_acc_misalignmentMatrix = estimated_misalignmentMatrix
-estimated_acc_scalingMatrix = estimated_scalingMatrix
-estimated_acc_biasVector = estimated_biasVector
-# Calibrating accelerometer data
-A = np.matmul(np.matmul(estimated_misalignmentMatrix,estimated_acc_scalingMatrix),np.array([biasfree_alpha_x,biasfree_alpha_y,biasfree_alpha_z]))
-B = np.matmul(np.diag([estimated_biasVector[0][0],estimated_biasVector[1][0],estimated_biasVector[2][0]]),np.ones([3,len(biasfree_alpha_x)]))
-calib_acc = A - B
-alpha_x_calib = calib_acc[0,:]
-alpha_y_calib = calib_acc[1,:]
-alpha_z_calib = calib_acc[2,:]
-
-ffilter = s_filter
-ffilter = ffilter.reshape([1,len(s_filter)])
-L = 0
-samples = 0
-start = 0
-# Inizializzazione flag
-flag = 0
-
-for f in range (ffilter.shape[1]):
-    if flag == 1 and ffilter[0,f] == 0:
-        L += 1
-        flag = 0
-    elif flag == 0 and ffilter[0,f] == 1:
-        flag = 1
-
-QS_time_interval_info_matrix = np.zeros([1+1+1+3,L])
-L = 0
-
-if ffilter[0,0] == 0:
-    flag = 0
-else:
-    flag = 1
-    start = 1
-
-# Cycle
-for i in range (ffilter.shape[1]):
-##        print(i)
-    if flag == 1 and ffilter[0,i] == 1:
-        samples += 1
-    elif flag == 1 and ffilter[0,i] == 0:
-        QS_time_interval_info_matrix[0:3,L] = [start,i,samples]
-        L += 1
-        flag = 0
-    elif flag == 0 and ffilter[0,i] == 1:
-        start = i + 1
-        samples = 1
-        flag = 1
-
-num_samples = int(qsTime/sample_period)
-
-signal = np.array([alpha_x_calib,alpha_y_calib,alpha_z_calib])
-
-L = 0
-
-for j in range (len(QS_time_interval_info_matrix)):
-    for i in range(num_samples-1):
-        L += 1
-    L += 1
-
-selected_data = np.zeros([3,L])
-L = 0
-
-for j in range (len(QS_time_interval_info_matrix)):
-    selected_acc_data = np.zeros([3,num_samples-1])
-    selection_step = QS_time_interval_info_matrix[2,j]//num_samples
-    for i in range(num_samples-1):
-        selected_acc_data[0,i] = signal[0,int(QS_time_interval_info_matrix[0,j] + (i)*selection_step)-1]
-        selected_acc_data[1,i] = signal[1,int(QS_time_interval_info_matrix[0,j] + (i)*selection_step)-1]
-        selected_acc_data[2,i] = signal[2,int(QS_time_interval_info_matrix[0,j] + (i)*selection_step)-1]
-##            L += 1
-    selected_data[0,num_samples-1] = signal[0,int(QS_time_interval_info_matrix[1,j])-1]
-    selected_data[1,num_samples-1] = signal[1,int(QS_time_interval_info_matrix[1,j])-1]
-    selected_data[2,num_samples-1] = signal[2,int(QS_time_interval_info_matrix[1,j])-1]
-    QS_time_interval_info_matrix[3:6, L] = np.mean(selected_acc_data, axis=1)
-    L += 1
-
-QS_time_interval_calib_info_matrix = QS_time_interval_info_matrix
-
-# Minimizing LSQNONLIN
-
-theta_pr_gyro = np.array([1/6258,0,0,0,1/6258,0,0,0,1/6258])
-def fun2(E):
-    return gyroCostFunctionLSQNONLIN(E,QS_time_interval_calib_info_matrix,omega_x,omega_y,omega_z)
-output2 = scp.optimize.least_squares(fun2,theta_pr_gyro,ftol=1e-6,xtol=1e-7,method='lm',max_nfev=400)
-
-time = time.process_time() - st
-print('Execution TIme:',time,'seconds')
+print('Accelerometer''s Estimated Scaling Matrix:')
+print(comp_a_scale)
+print('Accelerometer''s Estimated Misalignment Matrix:')
+print(comp_a_misal)
