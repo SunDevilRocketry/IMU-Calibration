@@ -5,12 +5,8 @@
 
 import numpy as np
 import math
-import matplotlib as mpl
 import matplotlib.pyplot as plt
-import pandas as pd
-import statistics as stat
 import scipy as scp
-import sympy as sym
 
 print("Program to Calibrate IMU Gyroscope and Accelerometer")
 
@@ -21,7 +17,7 @@ def accCostFunctionLSQNONLIN(E,a_hat):
     a_bar = np.matmul(np.matmul(misalignmentMatrix,scalingMtrix),a_hat) - np.matmul(np.diag([E[6],E[7],E[8]]),np.ones([3,a_hat.shape[1]]))
 
     # Magnitude taken from tables
-    magnitude = 9.81
+    magnitude = 9.8
 
     residuals = np.zeros([a_bar.shape[1]])
 
@@ -48,9 +44,9 @@ def quaternion(theta,w):
 
 def obtainComparableMatrix(acc_scale_matrix, acc_misal_matrix):
     # acc misal parameter taken from datasheet
-    alpha_xz_6 = 0.01
-    alpha_xy_6 = -0.02
-    alpha_yx_6 = 0.01
+    alpha_xz_6 = 0.0
+    alpha_xy_6 = -0.0
+    alpha_yx_6 = 0.0
 
     R_xz = quaternion(-alpha_xz_6,np.array([0,0,1]))
     R_xy = quaternion(-alpha_xy_6,np.array([0,1,0]))
@@ -69,7 +65,7 @@ print('Importing Data')
 # omega_data_file = pd.read_excel('.\Data\IMU0x2Domega.xlsx')
 # omegadata = omega_data_file.to_numpy()
 
-importdata = np.loadtxt('imu_cal_data_with_table_int.txt')
+importdata = np.loadtxt('imu_cal_data_with_table.txt')
 ##importdata = np.loadtxt('imu_cal_data_with_table.txt')
 alphadata = np.zeros([len(importdata),4])
 omegadata = np.zeros([len(importdata),4])
@@ -81,8 +77,8 @@ print(alphadata)
 print('Data Import Complete')
 
 total_time = alphadata[:,0]
-T_init = 1000   # Initilization Time (s/100)
-n = 16
+T_init = 2775   # Initilization Time (s/100)
+n   = 16
 y = 6
 r = (2**n - 1)/(2*y)
 
@@ -128,13 +124,11 @@ plt.ylabel('Raw Gyroscope')
 plt.legend()
 plt.show()
 
-M_inf = []
-
 ## Static State Statistical Filter
 print('calculating variance')
 var_3D = (np.var(biasfree_alpha_x[0:T_init]))**2 + (np.var(biasfree_alpha_y[0:T_init]))**2 + (np.var(biasfree_alpha_z[0:T_init]))**2
 
-tw = 23
+tw = 21
 half_tw = tw//2
     
 normal_x = np.zeros([1,total_sample])
@@ -266,6 +260,11 @@ estimated_misalignmentMatrix = np.array([[1,-theta_pr_opt[0],theta_pr_opt[1]],[0
 estimated_scalingMatrix = np.diag([theta_pr_opt[3],theta_pr_opt[4],theta_pr_opt[5]])
 estimated_biasVector = np.array([[theta_pr_opt[6]],[theta_pr_opt[7]],[theta_pr_opt[8]]])
 
+# Calibrating accelerometer data
+original_alpha_data = np.vstack((alpha_x,alpha_y,alpha_z))
+biasfree_alpha_data = original_alpha_data - np.array([[bias_alpha_x],[bias_alpha_y],[bias_alpha_z]])
+calib_acc = (np.matmul(np.matmul(estimated_misalignmentMatrix,estimated_scalingMatrix),(biasfree_alpha_data))) - estimated_biasVector
+
 s_filter = np.zeros([total_sample])
 
 for i in range (half_tw, total_sample - (half_tw)):
@@ -283,28 +282,26 @@ plt.show()
 
 [comp_a_scale,comp_a_misal] = obtainComparableMatrix(estimated_scalingMatrix,estimated_misalignmentMatrix)
 
+print('Accelerometer''s Estimated Bias Vector:')
+print(estimated_biasVector)
 print('Accelerometer''s Estimated Scaling Matrix:')
 print(comp_a_scale)
 print('Accelerometer''s Estimated Misalignment Matrix:')
 print(comp_a_misal)
 
-original_alpha_data = np.vstack((alpha_x,alpha_y,alpha_z))
-
 plt.plot(total_time,original_alpha_data[0,:],'r')
 plt.plot(total_time,original_alpha_data[1,:],'g')
 plt.plot(total_time,original_alpha_data[2,:],'b')
+plt.title('Original Accelerometer Data')
 plt.xlabel('time')
 plt.ylabel('acceleration (m/s^2)')
 plt.grid(True)
 plt.show()
 
-acc_offset = np.array([[bias_alpha_x],[bias_alpha_y],[bias_alpha_z]])
-acc_calibrated_data = np.matmul(np.matmul(comp_a_misal,comp_a_scale),(original_alpha_data+estimated_biasVector+acc_offset))
-##acc_calibrated_data = original_alpha_data+estimated_biasVector+acc_offset
-
-plt.plot(total_time,acc_calibrated_data[0,:],'r')
-plt.plot(total_time,acc_calibrated_data[1,:],'g')
-plt.plot(total_time,acc_calibrated_data[2,:],'b')
+plt.plot(total_time,calib_acc[0,:],'r')
+plt.plot(total_time,calib_acc[1,:],'g')
+plt.plot(total_time,calib_acc[2,:],'b')
+plt.title('Calibrated Accelerometer Data')
 plt.xlabel('time')
 plt.ylabel('acceleration (m/s^2)')
 plt.grid(True)

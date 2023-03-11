@@ -362,3 +362,18 @@ disp(['Gyroscope''','s Estimated Scaling Matrix:']);
 disp(comp_g_scale);
 disp(['Gyroscope''','s Estimated Misalignment Matrix:']);
 disp(comp_g_misal);
+
+original_alpha_data = [a_xp;a_yp;a_zp];
+acc_calibrated_data = comp_a_misal*comp_a_scale*(original_alpha_data-estimated_acc_biasVector);
+
+figure
+plot(time,acc_calibrated_data(1,:))
+hold on
+plot(time,acc_calibrated_data(2,:))
+plot(time,acc_calibrated_data(3,:))
+
+figure
+plot(time,a_xp_calib)
+hold on
+plot(time,a_yp_calib)
+plot(time,a_zp_calib)

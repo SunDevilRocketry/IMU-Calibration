@@ -5,12 +5,9 @@
 
 import numpy as np
 import math
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pandas as pd
-import statistics as stat
 import scipy as scp
-import sympy as sym
 
 print("Program to Calibrate IMU Gyroscope and Accelerometer")
 
@@ -102,16 +99,14 @@ biasfree_omega_z = omega_z - bias_omega_z
 
 total_sample = len(biasfree_omega_x)
 
-##plt.plot(total_time,biasfree_omega_x,label = 'x Axis')
-##plt.plot(total_time,biasfree_omega_y,label = 'y Axis')
-##plt.plot(total_time,biasfree_omega_z,label = 'z Axis')
-##plt.title('Bias Free Gyroscope Data')
-##plt.xlabel('Time (s/100)')
-##plt.ylabel('Raw Gyroscope')
-##plt.legend()
-##plt.show()
-
-M_inf = []
+plt.plot(total_time,biasfree_omega_x,label = 'x Axis')
+plt.plot(total_time,biasfree_omega_y,label = 'y Axis')
+plt.plot(total_time,biasfree_omega_z,label = 'z Axis')
+plt.title('Bias Free Gyroscope Data')
+plt.xlabel('Time (s/100)')
+plt.ylabel('Raw Gyroscope')
+plt.legend()
+plt.show()
 
 ## Static State Statistical Filter
 print('calculating variance')
@@ -249,24 +244,51 @@ estimated_misalignmentMatrix = np.array([[1,-theta_pr_opt[0],theta_pr_opt[1]],[0
 estimated_scalingMatrix = np.diag([theta_pr_opt[3],theta_pr_opt[4],theta_pr_opt[5]])
 estimated_biasVector = [[theta_pr_opt[6]],[theta_pr_opt[7]],[theta_pr_opt[8]]]
 
+# Calibrating accelerometer data
+original_alpha_data = np.vstack((alpha_x,alpha_y,alpha_z))
+biasfree_alpha_data = original_alpha_data - np.array([[bias_alpha_x],[bias_alpha_y],[bias_alpha_z]])
+calib_acc = np.matmul(np.matmul(estimated_misalignmentMatrix,estimated_scalingMatrix),(biasfree_alpha_data)) - estimated_biasVector
+
 s_filter = np.zeros([total_sample])
 
 for i in range (half_tw, total_sample - (half_tw)):
     if s_square[0,i-1] < times_the_var*var_3D:
         s_filter[i-1] = 1
 
-##plt.plot(total_time,biasfree_alpha_x,'r-',label = 'x Axis')
-##plt.plot(total_time,biasfree_alpha_y,'g-',label = 'y Axis')
-##plt.plot(total_time,biasfree_alpha_z,'b-',label = 'z Axis')
-##plt.plot(total_time,s_filter*5000,'k-')
-##plt.xlabel('Time (s/100)')
-##plt.ylabel('Raw Accelerometer')
-##plt.legend()
-##plt.show()
+plt.plot(total_time,biasfree_alpha_x,'r-',label = 'x Axis')
+plt.plot(total_time,biasfree_alpha_y,'g-',label = 'y Axis')
+plt.plot(total_time,biasfree_alpha_z,'b-',label = 'z Axis')
+plt.plot(total_time,s_filter*5000,'k-')
+plt.xlabel('Time (s/100)')
+plt.ylabel('Raw Accelerometer')
+plt.legend()
+plt.show()
 
 [comp_a_scale,comp_a_misal] = obtainComparableMatrix(estimated_scalingMatrix,estimated_misalignmentMatrix)
 
+print('Accelerometer''s Estimated Bias Vector:')
+print(estimated_biasVector)
 print('Accelerometer''s Estimated Scaling Matrix:')
 print(comp_a_scale)
 print('Accelerometer''s Estimated Misalignment Matrix:')
 print(comp_a_misal)
+
+original_alpha_data = np.vstack((alpha_x,alpha_y,alpha_z))
+
+plt.plot(total_time,original_alpha_data[0,:],'r')
+plt.plot(total_time,original_alpha_data[1,:],'g')
+plt.plot(total_time,original_alpha_data[2,:],'b')
+plt.title('Original Accelerometer Data')
+plt.xlabel('time')
+plt.ylabel('acceleration (m/s^2)')
+plt.grid(True)
+plt.show()
+
+plt.plot(total_time,calib_acc[0,:],'r')
+plt.plot(total_time,calib_acc[1,:],'g')
+plt.plot(total_time,calib_acc[2,:],'b')
+plt.title('Calibrated Accelerometer Data')
+plt.xlabel('time')
+plt.ylabel('acceleration (m/s^2)')
+plt.grid(True)
+plt.show()
