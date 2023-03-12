@@ -68,7 +68,6 @@ alpha_data_file = pd.read_excel(alpha_data_filename)
 omega_data_file = pd.read_excel(omega_data_filename)
 alphadata = alpha_data_file.to_numpy()
 omegadata = omega_data_file.to_numpy()
-print(alphadata)
 print('Data Import Complete')
 
 total_time = alphadata[:,0]
@@ -101,15 +100,6 @@ biasfree_omega_y = omega_y - bias_omega_y
 biasfree_omega_z = omega_z - bias_omega_z
 
 total_sample = len(biasfree_omega_x)
-
-plt.plot(total_time,biasfree_omega_x,label = 'x Axis')
-plt.plot(total_time,biasfree_omega_y,label = 'y Axis')
-plt.plot(total_time,biasfree_omega_z,label = 'z Axis')
-plt.title('Bias Free Gyroscope Data')
-plt.xlabel('Time (s/100)')
-plt.ylabel('Raw Gyroscope')
-plt.legend()
-plt.show()
 
 ## Static State Statistical Filter
 print('calculating variance')
@@ -258,14 +248,30 @@ for i in range (half_tw, total_sample - (half_tw)):
     if s_square[0,i-1] < times_the_var*var_3D:
         s_filter[i-1] = 1
 
+# Plot the accelerometer data with static detector
+plt.figure()
 plt.plot(total_time,biasfree_alpha_x,'r-',label = 'x Axis')
-plt.plot(total_time,biasfree_alpha_y,'g-',label = 'y Axis')
-plt.plot(total_time,biasfree_alpha_z,'b-',label = 'z Axis')
 plt.plot(total_time,s_filter*5000,'k-')
+plt.title( "Accelerometer X Axis Data" )
 plt.xlabel('Time (s/100)')
 plt.ylabel('Raw Accelerometer')
-plt.legend()
-plt.show()
+plt.show( block = False )
+
+plt.figure()
+plt.plot(total_time,biasfree_alpha_y,'g-',label = 'y Axis')
+plt.plot(total_time,s_filter*5000,'k-')
+plt.title( "Accelerometer Y Axis Data" )
+plt.xlabel('Time (s/100)')
+plt.ylabel('Raw Accelerometer')
+plt.show( block = False )
+
+plt.figure()
+plt.plot(total_time,biasfree_alpha_z,'b-',label = 'z Axis')
+plt.plot(total_time,s_filter*5000,'k-')
+plt.title( "Accelerometer Z Axis Data" )
+plt.xlabel('Time (s/100)')
+plt.ylabel('Raw Accelerometer')
+plt.show( block = False )
 
 [comp_a_scale,comp_a_misal] = obtainComparableMatrix(estimated_scalingMatrix,estimated_misalignmentMatrix)
 
@@ -278,6 +284,7 @@ print(comp_a_misal)
 
 original_alpha_data = np.vstack((alpha_x,alpha_y,alpha_z))
 
+plt.figure()
 plt.plot(total_time,original_alpha_data[0,:],'r')
 plt.plot(total_time,original_alpha_data[1,:],'g')
 plt.plot(total_time,original_alpha_data[2,:],'b')
