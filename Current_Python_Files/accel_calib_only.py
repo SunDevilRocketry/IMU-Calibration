@@ -5,6 +5,7 @@
 
 import numpy as np
 import math
+import os
 import matplotlib.pyplot as plt
 import pandas as pd
 import scipy as scp
@@ -61,9 +62,11 @@ def obtainComparableMatrix(acc_scale_matrix, acc_misal_matrix):
 
 ## Importing Data
 print('Importing Data')
-alpha_data_file = pd.read_excel('.\Data\IMU0x2Dalpha.xlsx')
+alpha_data_filename = os.path.join("Data", "IMU0x2Dalpha.xlsx")
+omega_data_filename = os.path.join("Data", "IMU0x2Domega.xlsx")
+alpha_data_file = pd.read_excel(alpha_data_filename)
+omega_data_file = pd.read_excel(omega_data_filename)
 alphadata = alpha_data_file.to_numpy()
-omega_data_file = pd.read_excel('.\Data\IMU0x2Domega.xlsx')
 omegadata = omega_data_file.to_numpy()
 print(alphadata)
 print('Data Import Complete')
