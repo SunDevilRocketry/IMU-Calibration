@@ -45,7 +45,7 @@ def quaternion(theta,w):
 def obtainComparableMatrix(acc_scale_matrix, acc_misal_matrix):
     # acc misal parameter taken from datasheet
     alpha_xz_6 = 0.0
-    alpha_xy_6 = -0.0
+    alpha_xy_6 = 0.0
     alpha_yx_6 = 0.0
 
     R_xz = quaternion(-alpha_xz_6,np.array([0,0,1]))
@@ -77,10 +77,7 @@ print(alphadata)
 print('Data Import Complete')
 
 total_time = alphadata[:,0]
-T_init = 2775   # Initilization Time (s/100)
-n   = 16
-y = 6
-r = (2**n - 1)/(2*y)
+T_init = 2775   # Initilization Time Index
 
 alpha_x = alphadata[:,1]
 alpha_y = alphadata[:,2]

@@ -17,7 +17,7 @@ def accCostFunctionLSQNONLIN(E,a_hat):
     a_bar = np.matmul(np.matmul(misalignmentMatrix,scalingMtrix),a_hat) - np.matmul(np.diag([E[6],E[7],E[8]]),np.ones([3,a_hat.shape[1]]))
 
     # Magnitude taken from tables
-    magnitude = 9.81
+    magnitude = 9.8
 
     residuals = np.zeros([a_bar.shape[1]])
 
@@ -45,7 +45,7 @@ def quaternion(theta,w):
 def obtainComparableMatrix(acc_scale_matrix, acc_misal_matrix):
     # acc misal parameter taken from datasheet
     alpha_xz_6 = 0.0
-    alpha_xy_6 = -0.0
+    alpha_xy_6 = 0.0
     alpha_yx_6 = 0.0
 
     R_xz = quaternion(-alpha_xz_6,np.array([0,0,1]))
@@ -77,10 +77,7 @@ print(alphadata)
 print('Data Import Complete')
 
 total_time = alphadata[:,0]
-T_init = 901   # Initilization Time (s/100)
-n = 16
-y = 6
-r = (2**n - 1)/(2*y)
+T_init = 901   # Initilization Time Index
 
 alpha_x = alphadata[:,1]
 alpha_y = alphadata[:,2]
@@ -88,14 +85,6 @@ alpha_z = alphadata[:,3]
 omega_x = omegadata[:,1]
 omega_y = omegadata[:,2]
 omega_z = omegadata[:,3]
-
-##bias_alpha_x = 33123
-##bias_alpha_y = 33276
-##bias_alpha_z = 32360
-##
-##bias_omega_x = 32768
-##bias_omega_y = 32466
-##bias_omega_z = 32485
 
 bias_alpha_x = 0
 bias_alpha_y = 0
@@ -105,13 +94,23 @@ bias_omega_x = 0
 bias_omega_y = 0
 bias_omega_z = 0
 
-biasfree_alpha_x = alpha_x - bias_alpha_x
-biasfree_alpha_y = alpha_y - bias_alpha_y
-biasfree_alpha_z = alpha_z - bias_alpha_z
+noise = np.random.normal(0, 0.1, [len(alphadata)])
 
-biasfree_omega_x = omega_x - bias_omega_x
-biasfree_omega_y = omega_y - bias_omega_y
-biasfree_omega_z = omega_z - bias_omega_z
+# biasfree_alpha_x = alpha_x - bias_alpha_x
+# biasfree_alpha_y = alpha_y - bias_alpha_y
+# biasfree_alpha_z = alpha_z - bias_alpha_z
+
+# biasfree_omega_x = omega_x - bias_omega_x
+# biasfree_omega_y = omega_y - bias_omega_y
+# biasfree_omega_z = omega_z - bias_omega_z
+
+biasfree_alpha_x = alpha_x + noise
+biasfree_alpha_y = alpha_y + noise
+biasfree_alpha_z = alpha_z + noise
+
+biasfree_omega_x = omega_x + noise
+biasfree_omega_y = omega_y + noise
+biasfree_omega_z = omega_z + noise
 
 total_sample = len(biasfree_omega_x)
 
@@ -128,7 +127,7 @@ plt.show()
 print('calculating variance')
 var_3D = (np.var(biasfree_alpha_x[0:T_init]))**2 + (np.var(biasfree_alpha_y[0:T_init]))**2 + (np.var(biasfree_alpha_z[0:T_init]))**2
 
-tw = 22
+tw = 21
 half_tw = tw//2
     
 normal_x = np.zeros([1,total_sample])

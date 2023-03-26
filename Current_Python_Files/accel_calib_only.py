@@ -70,9 +70,6 @@ print('Data Import Complete')
 
 total_time = alphadata[:,0]
 T_init = 3000   # Initilization Time (s/100)
-n = 16
-y = 6
-r = (2**n - 1)/(2*y)
 
 alpha_x = alphadata[:,1]
 alpha_y = alphadata[:,2]
